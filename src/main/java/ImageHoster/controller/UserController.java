@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.servlet.http.HttpSession;
 import java.util.List;
+import java.util.regex.Pattern;
 
 
 @Controller
@@ -40,9 +41,15 @@ public class UserController {
     //This controller method is called when the request pattern is of type 'users/registration' and also the incoming request is of POST type
     //This method calls the business logic and after the user record is persisted in the database, directs to login page
     @RequestMapping(value = "users/registration", method = RequestMethod.POST)
-    public String registerUser(User user) {
-        userService.registerUser(user);
-        return "redirect:/users/login";
+    public String registerUser(User user, Model model) {
+        if (checkPasswordStrength(user.getPassword())) {
+            userService.registerUser(user);
+            return "redirect:/users/login";
+        }
+        String error = "Password must contain atleast 1 alphabet, 1 number & 1 special character";
+        model.addAttribute("passwordTypeError", error);
+        model.addAttribute("User", user);
+        return "/users/registration";
     }
 
     //This controller method is called when the request pattern is of type 'users/login'
@@ -78,5 +85,15 @@ public class UserController {
         List<Image> images = imageService.getAllImages();
         model.addAttribute("images", images);
         return "index";
+    }
+
+    // Verify the password strength
+    // (?=.*[a-zA-Z]) verifies that atleast one character in the given string must be alphabet (between a to z or A to Z)
+    // (?=.*[0-9]) verifies that atleast one character must be number (between 0 to 9)
+    // (?=.*[^a-zA-Z0-9]) verifies that atleast one enetred character must be a special character other that a to z and A to Z and 0 to 9
+    // {3,} minimum password length should be 3 containing one each character as alphabet, number and special keyboard character. The maximum password length can be of any length
+    private boolean checkPasswordStrength(String password) {
+        Pattern pattern = Pattern.compile("^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{3,}$");
+        return pattern.matcher(password).matches();
     }
 }
